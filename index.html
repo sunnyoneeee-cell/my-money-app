@@ -37,7 +37,7 @@
 
         /* 弹窗通用 */
         #add-modal, #search-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 2000; flex-direction: column; padding-top: env(safe-area-inset-top); }
-        #search-modal { background: #f7f9fb; z-index: 3000; display: none; } /* 确保搜索弹窗初始隐藏 */
+        #search-modal { background: #f7f9fb; z-index: 3000; display: none; }
         
         .modal-header { padding: 15px; text-align: center; font-weight: bold; border-bottom: 1px solid #eee; position: relative; height: 24px; display: flex; align-items: center; justify-content: center; }
         .header-btn-left { position: absolute; left: 15px; font-size: 20px; cursor: pointer; display: flex; align-items: center;}
@@ -62,7 +62,7 @@
         .remark-input-box { width: 100%; box-sizing: border-box; padding: 10px; background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; font-size: 14px; outline: none; }
         
         .keyboard-area { background: #f8f8f8; padding-bottom: 20px; }
-        .amount-display-row { display: flex; justify-content: space-between; align-items: center; background: #fff; border-bottom: 1px solid #eee; padding: 5px 20px; }
+        .amount-display-row { display: flex; justify-content: space-between; align-items: center; background: #fff; border-bottom: 1px solid #eee; padding: 5px 20px; position: relative; }
         .date-display-btn { font-size: 14px; color: var(--primary-dark); border: 1px solid var(--primary); padding: 4px 10px; border-radius: 15px; cursor: pointer; display: flex; align-items: center; }
         .amount-display { font-size: 32px; text-align: right; padding: 10px 0; color: #333; font-family: monospace; flex-grow: 1; margin-left: 10px; }
         .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #eee; }
@@ -99,11 +99,14 @@
         .nav-item.active { color: #333; }
         .add-btn-circle { width: 50px; height: 50px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; margin-top: -25px; box-shadow: 0 4px 10px rgba(209, 233, 246, 0.6); }
         
-        #avatar-input, #backup-input, #date-picker-input { display: none; }
+        /* 修复后的隐藏 Input 样式 */
+        #avatar-input, #backup-input { display: none; }
+        /* 关键修改：不能用 display:none，否则 showPicker 失效。改用透明度隐藏 */
+        #date-picker-input { position: absolute; opacity: 0; width: 0; height: 0; bottom: 0; left: 0; pointer-events: none; }
+        
         #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 5000; left: 50%; bottom: 100px; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s; }
         #toast.show { visibility: visible; opacity: 0.9; }
 
-        /* 统计页日期选择器样式 */
         .month-picker-container { text-align: center; margin-bottom: 15px; }
         .month-picker-input { padding: 5px 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #555; outline: none; }
     </style>
@@ -272,12 +275,12 @@
         let currentExpr="0", currentCat=Object.keys(data.categories)[0], currentSubCat=data.categories[currentCat][0], isManaging=false, selectedDate=new Date(), txDate=new Date(), editingTxId=null;
         
         let budgetChartInstance = null;
-        let statsChartInstance = null; // 用于存储统计图表实例
+        let statsChartInstance = null;
 
         function saveData() { localStorage.setItem("moneyUltimateData", JSON.stringify(data)); }
         function init() { 
             checkAutoImport(); 
-            // 初始化统计页月份为当前月
+            // 初始化统计页月份
             const now = new Date();
             const monthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
             document.getElementById('stats-month-input').value = monthStr;
@@ -286,7 +289,6 @@
             renderProfile();
         }
 
-        // --- 核心：自动导入逻辑 (保持不变) ---
         function checkAutoImport() {
             const params = new URLSearchParams(window.location.search);
             const multiStr = params.get('multi');
@@ -333,7 +335,6 @@
 
         function showToast(msg) { const x=document.getElementById("toast"); x.innerText=msg; x.className="show"; setTimeout(()=>{x.className=x.className.replace("show","")}, 3000); }
         
-        // --- 首页逻辑 (已修改：最近7天) ---
         function renderHome() {
             const now=new Date(), cm=now.getMonth(), cy=now.getFullYear();
             let monthSpent=0; 
@@ -355,22 +356,14 @@
             
             budgetChartInstance=new Chart(ctx,{type:'doughnut',data:{labels:['已用','剩余'],datasets:[{data:chartData,backgroundColor:chartColors,borderWidth:0}]},options:{cutout:'80%',plugins:{legend:false,tooltip:false}}});
             
-            // --- 关键修改：筛选最近 7 天的记录 ---
             const listEl = document.getElementById("recent-list");
             listEl.innerHTML = "";
-            
-            // 计算7天前的日期对象 (包含今天)
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            sevenDaysAgo.setHours(0,0,0,0); // 清除时分秒，确保从那天的0点开始算
+            sevenDaysAgo.setHours(0,0,0,0); 
 
-            // 筛选并排序
             const recentTx = data.transactions
-                .filter(t => {
-                    const tDate = new Date(t.date);
-                    // 兼容 Safari 的日期解析 (YYYY-MM-DD)
-                    return tDate >= sevenDaysAgo; 
-                })
+                .filter(t => { return new Date(t.date) >= sevenDaysAgo; })
                 .sort((a,b)=>(new Date(b.date)-new Date(a.date)) || (b.id-a.id));
 
             if (recentTx.length === 0) {
@@ -399,78 +392,73 @@
             else{ data.transactions.push({id:Date.now(),category:currentCat,subCat:currentSubCat,amount:finalAmount,date:dateStr,note:note}); }
             saveData();closeAdd();renderHome();
             if(document.getElementById('page-calendar').style.display==='block')renderDayDetails();
-            if(document.getElementById('page-stats').style.display==='block')renderStats(); // 保存后更新统计
+            if(document.getElementById('page-stats').style.display==='block')renderStats();
             if(document.getElementById('search-modal').style.display==='block')doSearch();
         };
         
         window.deleteCurrentTx=function(){ if(editingTxId&&confirm("确定删除?")){const idx=data.transactions.findIndex(t=>t.id===editingTxId);if(idx>-1){data.transactions.splice(idx,1);saveData();closeAdd();renderHome();if(document.getElementById('page-calendar').style.display==='block')renderDayDetails();if(document.getElementById('page-stats').style.display==='block')renderStats();if(document.getElementById('search-modal').style.display==='block')doSearch();}} };
         
-        window.openDatePicker=function(){document.getElementById('date-picker-input').showPicker();};window.onDatePicked=function(i){if(i.value){const p=i.value.split('-');txDate=new Date(p[0],p[1]-1,p[2]);updateDateBtn();}};
+        // --- 修复：日历调用逻辑 ---
+        window.openDatePicker=function(){
+            try {
+                document.getElementById('date-picker-input').showPicker();
+            } catch (e) {
+                // 兼容性处理
+                document.getElementById('date-picker-input').click();
+            }
+        };
+        window.onDatePicked=function(i){if(i.value){const p=i.value.split('-');txDate=new Date(p[0],p[1]-1,p[2]);updateDateBtn();}};
+        
         function updateDateBtn(){const m=txDate.getMonth()+1;const d=txDate.getDate();document.getElementById("tx-date-display").innerText=`${m}月${d}日`;document.getElementById('date-picker-input').value=`${txDate.getFullYear()}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+        
         window.pressKey=function(k){if(k==='AC')currentExpr="0";else if(k==='back')currentExpr=currentExpr.toString().slice(0,-1)||"0";else{if(currentExpr==="0"&&!['.','+','-','*','/'].includes(k))currentExpr=k;else currentExpr+=k;}updateDisplay();};
         window.calculateResult=function(){try{let r=eval(currentExpr.replace(/[^0-9\.\+\-\*\/\(\)]/g,''));if(!Number.isInteger(r))r=parseFloat(r.toFixed(2));currentExpr=r.toString();updateDisplay();return r;}catch(e){return null;}};
         function updateDisplay(){document.getElementById("amount-input").innerText=currentExpr;}
         
-        // 日历相关
         function renderCalendar(){const g=document.getElementById("calendar-body");g.innerHTML="";const y=selectedDate.getFullYear(),m=selectedDate.getMonth();document.getElementById("cal-title").innerText=`${y}年 ${m+1}月`;const f=new Date(y,m,1).getDay(),d=new Date(y,m+1,0).getDate();let map={};data.transactions.forEach(t=>{const dt=new Date(t.date);if(dt.getFullYear()===y&&dt.getMonth()===m)map[dt.getDate()]=true;});for(let i=0;i<f;i++)g.innerHTML+=`<div></div>`;for(let i=1;i<=d;i++){const s=i===selectedDate.getDate()?"selected":"",h=map[i]?"has-data":"";g.innerHTML+=`<div class="day-cell ${s} ${h}" onclick="selectDate(${i})"><span class="day-num">${i}</span><div class="day-dot"></div></div>`;}renderDayDetails();}
         window.selectDate=function(d){selectedDate.setDate(d);renderCalendar();};
         function renderDayDetails(){const l=document.getElementById("day-detail-list"),y=selectedDate.getFullYear(),m=selectedDate.getMonth(),d=selectedDate.getDate(),s=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;const txs=data.transactions.filter(t=>t.date===s).sort((a,b)=>b.id-a.id);document.getElementById("selected-date-title").innerText=`${m+1}月${d}日 ${txs.length?'明细':'无消费'}`;l.innerHTML="";txs.forEach(t=>l.innerHTML+=createTxItemHtml(t));}
         
-        // 分类相关
         function renderCategories(){const g=document.getElementById("cat-grid");g.innerHTML="";Object.keys(data.categories).forEach(c=>{const i=ICONS[c]||"fa-tag",a=(c===currentCat&&!isManaging)?"active":"",f=isManaging?`manageCat('${c}')`:`selectCat('${c}')`;g.innerHTML+=`<div class="cat-item ${a} ${isManaging?'managing':''}" onclick="${f}"><div class="del-badge"><i class="fas fa-times"></i></div><div class="cat-icon"><i class="fas ${i}"></i></div><div class="cat-name">${c}</div></div>`});if(isManaging)g.innerHTML+=`<div class="cat-item" onclick="addCat()"><div class="cat-icon"><i class="fas fa-plus"></i></div><div class="cat-name">添加</div></div>`;else renderSubCats();}
         window.selectCat=function(c){currentCat=c;currentSubCat=data.categories[c][0]||"默认";renderCategories();};window.toggleManageMode=function(){isManaging=!isManaging;renderCategories();};window.manageCat=function(c){if(confirm(`删 ${c}?`)){delete data.categories[c];saveData();renderCategories();}};window.addCat=function(){let n=prompt("新分类:");if(n){data.categories[n]=["默认"];saveData();renderCategories();}};
         function renderSubCats(){const c=document.getElementById("sub-cats-container");c.innerHTML="";(data.categories[currentCat]||[]).forEach(s=>{c.innerHTML+=`<span class="sub-tag ${s===currentSubCat?'active':''}" onclick="currentSubCat='${s}';renderSubCats()">${s}</span>`});c.innerHTML+=`<span class="sub-tag" onclick="manageSub()" style="border-style:dashed">+</span>`;}
         window.manageSub=function(){let a=prompt("1.加 2.删");if(a=="1"){let n=prompt("名:");if(n){data.categories[currentCat].push(n);saveData();renderSubCats();}}if(a=="2"){let n=prompt(`删?(${data.categories[currentCat]})`);if(n){let i=data.categories[currentCat].indexOf(n);if(i>-1)data.categories[currentCat].splice(i,1);saveData();renderSubCats();}}};
         
-        // 搜索相关
         window.openSearch=function(){document.getElementById("search-modal").style.display="block";document.getElementById("search-input").focus();};window.closeSearch=function(){document.getElementById("search-modal").style.display="none";};window.doSearch=function(){const v=document.getElementById("search-input").value.trim().toLowerCase(),d=document.getElementById("search-results");if(!v){d.innerHTML="";return;}const h=data.transactions.filter(t=>t.category.includes(v)||t.subCat.includes(v)||(t.note&&t.note.includes(v))||t.amount.toString().includes(v)).sort((a,b)=>(new Date(b.date)-new Date(a.date)));d.innerHTML=h.length?"":"<div style='text-align:center;color:#999;margin-top:20px;'>无记录</div>";h.forEach(t=>d.innerHTML+=createTxItemHtml(t));};
         
-        // 页面切换
         window.switchPage=function(p,e){
             document.querySelectorAll(".nav-item").forEach(i=>i.classList.remove("active"));
             e.classList.add("active");
             ['home','calendar','stats','profile'].forEach(id=>document.getElementById('page-'+id).style.display='none');
             document.getElementById('page-'+p).style.display='block';
-            
-            if(p==='home') renderHome(); // 切换回首页时刷新列表
+            if(p==='home') renderHome(); 
             if(p==='calendar'){selectedDate=new Date();renderCalendar();}
-            if(p==='stats') renderStats(); // 切换到统计页时刷新图表
+            if(p==='stats') renderStats();
         };
 
-        // 用户设置
         window.editBudget=function(){let v=prompt("预算:",data.budget);if(v&&!isNaN(v)){data.budget=v;saveData();renderHome();}};window.editNickname=function(){let v=prompt("昵称:",data.nickname);if(v){data.nickname=v;saveData();renderProfile();}};window.uploadAvatar=function(i){if(i.files[0]){let r=new FileReader();r.onload=e=>{data.avatar=e.target.result;saveData();renderProfile();};r.readAsDataURL(i.files[0]);}};function renderProfile(){document.getElementById("nickname-display").innerText=data.nickname;if(data.avatar)document.getElementById("avatar-img").src=data.avatar;}
         window.exportData=function(){const b=new Blob([JSON.stringify(data)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`私房钱备份_${new Date().toISOString().slice(0,10)}.json`;a.click();};
         window.importData=function(i){if(i.files[0]){const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.transactions){if(confirm("确定恢复?")){data=d;saveData();alert("成功!");location.reload();}}}catch(e){alert("文件坏了");}};r.readAsText(i.files[0]);}};window.clearAllData=function(){if(confirm("确定清空?")){localStorage.removeItem("moneyUltimateData");location.reload();}};
         
-        // --- 核心：按月统计图表 ---
         function renderStats(){
-            // 1. 获取选中的月份
-            const monthInput = document.getElementById('stats-month-input').value; // 格式 "2025-12"
-            if (!monthInput) return; // 防止未加载完成
+            const monthInput = document.getElementById('stats-month-input').value; 
+            if (!monthInput) return; 
 
-            // 2. 筛选该月的账单
             let m={};
             let hasData = false;
             data.transactions.forEach(t => {
-                // 账单日期 t.date 格式为 "YYYY-MM-DD"
-                // 只要判断是否以选中的月份 "YYYY-MM" 开头即可
                 if (t.date.startsWith(monthInput)) {
                     m[t.category] = (m[t.category]||0) + parseFloat(t.amount);
                     hasData = true;
                 }
             });
 
-            // 3. 准备图表数据
             const v=Object.values(m), k=Object.keys(m);
             const ctx = document.getElementById('pieChart').getContext('2d');
             
-            // 销毁旧图表，防止重叠
-            if (statsChartInstance) {
-                statsChartInstance.destroy();
-            }
+            if (statsChartInstance) statsChartInstance.destroy();
 
             if (!hasData) {
-                // 如果没数据，显示空图表或提示
                 statsChartInstance = new Chart(ctx, {
                     type: 'pie',
                     data: { labels: ['无数据'], datasets: [{ data: [1], backgroundColor: ['#eee'] }] },
@@ -480,7 +468,6 @@
                 return;
             }
 
-            // 4. 渲染新图表
             statsChartInstance = new Chart(ctx, {
                 type: 'pie',
                 data: {
@@ -492,7 +479,6 @@
                 }
             });
 
-            // 5. 渲染排行榜
             const l=document.getElementById("rank-list");
             l.innerHTML="";
             k.map((x,i)=>({x,v:v[i]})).sort((a,b)=>b.v-a.v).forEach((o,i)=>l.innerHTML+=`<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #eee;"><span>${i+1}. ${o.x}</span><span>¥${o.v.toFixed(2)}</span></div>`);
