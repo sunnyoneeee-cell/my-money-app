@@ -2,8 +2,16 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>私房钱 AI版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>私房钱</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#F7F9FB">
+    
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
+
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -19,6 +27,8 @@
         }
         body {
             margin: 0; padding: 0;
+            /* 增加顶部内边距，防止刘海屏遮挡 */
+            padding-top: env(safe-area-inset-top); 
             background-color: var(--bg);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: var(--text);
@@ -79,6 +89,7 @@
         #add-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #fff; z-index: 2000; flex-direction: column;
+            padding-top: env(safe-area-inset-top); /* 适配刘海屏 */
         }
         .modal-header {
             padding: 15px; text-align: center; font-weight: bold;
@@ -162,7 +173,7 @@
         .day-detail-container { margin-top: 10px; padding: 0 20px 80px 20px; }
         .day-detail-header { font-size: 14px; color: #999; margin-bottom: 10px; padding-left: 5px; border-left: 3px solid var(--primary); }
 
-        #search-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f7f9fb; z-index: 3000; }
+        #search-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f7f9fb; z-index: 3000; padding-top: env(safe-area-inset-top);}
         .search-bar { background: #fff; padding: 15px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .search-input { flex: 1; background: #f0f0f0; border: none; padding: 10px 15px; border-radius: 20px; font-size: 14px; outline: none; margin-right: 10px; }
         .search-results { padding: 20px; overflow-y: auto; height: calc(100% - 70px); }
@@ -173,7 +184,7 @@
         .btn-block { display: block; width: 100%; padding: 15px 0; text-align: center; background: #fff; margin-bottom: 10px; border-radius: 12px; color: #555; font-size: 14px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
         
         /* 底部导航 */
-        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 999; }
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 999; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: #ccc; font-size: 10px; cursor: pointer; }
         .nav-item i { font-size: 20px; margin-bottom: 4px; }
         .nav-item.active { color: #333; }
@@ -311,7 +322,7 @@
 
         function saveData() { localStorage.setItem("moneyUltimateData", JSON.stringify(data)); }
         function init() { 
-            checkAutoImport(); // 核心：检查是否有自动记账请求
+            checkAutoImport(); 
             renderHome(); renderProfile(); 
         }
 
@@ -325,43 +336,25 @@
             if (amtStr && catStr) {
                 const amt = parseFloat(amtStr);
                 if (!isNaN(amt) && amt > 0) {
-                    // 1. 自动匹配分类 (如果没找到，就默认归到“其他”)
                     let finalCat = "其他";
                     let finalSub = "杂项";
-                    
-                    // 尝试匹配一级分类
                     const existCat = Object.keys(data.categories).find(c => c === catStr);
                     if (existCat) {
                         finalCat = existCat;
                         finalSub = data.categories[existCat][0];
                     }
-
-                    // 2. 写入数据
                     const now = new Date();
                     const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-                    
-                    data.transactions.push({
-                        id: Date.now(),
-                        category: finalCat,
-                        subCat: finalSub,
-                        amount: amt,
-                        date: dateStr,
-                        note: noteStr || "AI自动识别"
-                    });
-                    
+                    data.transactions.push({ id: Date.now(), category: finalCat, subCat: finalSub, amount: amt, date: dateStr, note: noteStr || "AI自动识别" });
                     saveData();
                     showToast(`已自动记账：¥${amt} (${finalCat})`);
                 }
-                
-                // 3. 清除 URL 参数，防止刷新重复记账
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
 
         function showToast(msg) {
-            const x = document.getElementById("toast");
-            x.innerText = msg;
-            x.className = "show";
+            const x = document.getElementById("toast"); x.innerText = msg; x.className = "show";
             setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
         }
 
@@ -447,7 +440,7 @@
             }
         };
 
-        /* --- 日期/计算器/日历/备份等 (保持不变) --- */
+        /* --- 日期/计算器/日历/备份等 --- */
         window.openDatePicker = function() { document.getElementById('date-picker-input').showPicker(); };
         window.onDatePicked = function(input) { if(input.value) { const parts = input.value.split('-'); txDate = new Date(parts[0], parts[1]-1, parts[2]); updateDateBtn(); } };
         function updateDateBtn() { const m = txDate.getMonth()+1; const d = txDate.getDate(); document.getElementById("tx-date-display").innerText = `${m}月${d}日`; document.getElementById('date-picker-input').value = `${txDate.getFullYear()}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
