@@ -118,7 +118,6 @@
         // --- 核心：多笔账单自动导入逻辑 ---
         function checkAutoImport() {
             const params = new URLSearchParams(window.location.search);
-            // 优先检查 'multi' 参数（格式：金额|分类|备注;;金额|分类|备注）
             const multiStr = params.get('multi');
             let importedCount = 0;
             const now = new Date();
@@ -144,7 +143,6 @@
                     }
                 });
             } else {
-                // 兼容旧的单笔逻辑
                 const amtStr = params.get('amt');
                 if (amtStr) {
                     const amt = parseFloat(amtStr);
@@ -177,10 +175,21 @@
             document.getElementById("daily-avg").innerText=(monthSpent/Math.max(dayPassed,1)).toFixed(2);
             document.getElementById("daily-left").innerText=daysLeft>0?(remainingBudget/daysLeft).toFixed(2):remainingBudget.toFixed(2);
             const ctx=document.getElementById('budgetChart').getContext('2d'); if(budgetChartInstance)budgetChartInstance.destroy();
-            budgetChartInstance=new Chart(ctx,{type:'doughnut',data:{labels:['已用','剩余'],datasets:[{data:[monthSpent,remainingBudget>0?remainingBudget:0],backgroundColor:['#FFB7B2','#Eef2f5'],borderWidth:0}]},options:{cutout:'80%',plugins:{legend:false,tooltip:false}}});
+            // 修复图表空数据不显示的问题
+            let chartData = [monthSpent, remainingBudget > 0 ? remainingBudget : 0];
+            let chartColors = ['#FFB7B2', '#Eef2f5'];
+            if(monthSpent === 0 && remainingBudget === 0) { chartData = [1]; chartColors = ['#f0f0f0']; } // 全空显示灰色
+            
+            budgetChartInstance=new Chart(ctx,{type:'doughnut',data:{labels:['已用','剩余'],datasets:[{data:chartData,backgroundColor:chartColors,borderWidth:0}]},options:{cutout:'80%',plugins:{legend:false,tooltip:false}}});
             const listEl=document.getElementById("recent-list"); const sortedTx=data.transactions.slice().sort((a,b)=>(new Date(b.date)-new Date(a.date))||(b.id-a.id));
-            const recentTx=sortedTx.slice(0,5); listEl.innerHTML=recentTx.length?"":"<div style='text-align:center;color:#ccc;padding:10px;'>暂无记录</div>";
-            recentTx.forEach(t=>listEl.innerHTML+=createTxItemHtml(t));
+            const recentTx=sortedTx.slice(0,5); 
+            // 修复列表显示
+            listEl.innerHTML = "";
+            if (recentTx.length === 0) {
+                listEl.innerHTML = "<div style='text-align:center;color:#ccc;padding:10px;'>暂无记录</div>";
+            } else {
+                recentTx.forEach(t=>listEl.innerHTML+=createTxItemHtml(t));
+            }
         }
         function createTxItemHtml(t) { const icon=ICONS[t.category]||"fa-star"; const noteText=t.note?` | ${t.note}`:""; return `<div class="list-item" onclick="openEditTx(${t.id})"><div class="list-left"><div class="list-icon"><i class="fas ${icon}"></i></div><div class="list-info"><h5>${t.category} - ${t.subCat}</h5><div class="list-note">${t.date}${noteText}</div></div></div><div class="list-amount">-${parseFloat(t.amount).toFixed(2)}</div></div>`; }
         
