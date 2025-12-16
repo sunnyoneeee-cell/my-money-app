@@ -4,163 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>私房钱</title>
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#F7F9FB">
-    
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
-
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* --- 1. 全局配置 --- */
-        :root {
-            --primary: #D1E9F6;
-            --primary-dark: #aad6f0;
-            --bg: #F7F9FB;
-            --text: #333;
-            --gray: #999;
-            --red: #FFB7B2;
-            --green: #B5EAD7;
-        }
-        body {
-            margin: 0; padding: 0;
-            /* 增加顶部内边距，防止刘海屏遮挡 */
-            padding-top: env(safe-area-inset-top); 
-            background-color: var(--bg);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            color: var(--text);
-            padding-bottom: 90px;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-        }
-        
-        /* 顶部栏 */
-        .header {
-            background: #fff;
-            padding: 15px 20px;
-            display: flex; justify-content: space-between; align-items: center;
-            position: sticky; top: 0; z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-        }
+        :root { --primary: #D1E9F6; --primary-dark: #aad6f0; --bg: #F7F9FB; --text: #333; --gray: #999; --red: #FFB7B2; }
+        body { margin: 0; padding: 0; padding-top: env(safe-area-inset-top); background-color: var(--bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--text); padding-bottom: 90px; -webkit-tap-highlight-color: transparent; user-select: none; }
+        .header { background: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
         .app-name { font-size: 18px; font-weight: bold; color: #555; }
-        
-        /* 通用卡片 */
-        .card {
-            background: #fff;
-            margin: 15px; padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-        }
-
-        /* --- 首页组件 --- */
-        .budget-circle-container {
-            position: relative; width: 180px; height: 180px; margin: 0 auto;
-        }
-        .budget-center-text {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); text-align: center;
-        }
+        .card { background: #fff; margin: 15px; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .budget-circle-container { position: relative; width: 180px; height: 180px; margin: 0 auto; }
+        .budget-center-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
         .total-spent { font-size: 28px; font-weight: bold; color: #333; margin-bottom: 5px; }
         .info-row { display: flex; justify-content: space-between; margin-top: 20px; padding: 0 10px; }
         .info-item { text-align: center; flex: 1; }
         .info-val { font-size: 16px; font-weight: bold; color: #555; }
         .info-lbl { font-size: 12px; color: var(--gray); margin-top: 4px; }
-
-        /* 列表项样式 (可点击) */
-        .list-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 0; border-bottom: 1px solid #f9f9f9; cursor: pointer;
-        }
-        .list-item:active { background-color: #f9f9f9; } /* 点击反馈 */
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f9f9f9; cursor: pointer; }
+        .list-item:active { background-color: #f9f9f9; }
         .list-left { display: flex; align-items: center; }
-        .list-icon {
-            width: 40px; height: 40px; background: #f0f0f0; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; margin-right: 12px;
-            font-size: 18px; color: var(--primary-dark);
-        }
+        .list-icon { width: 40px; height: 40px; background: #f0f0f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 18px; color: var(--primary-dark); }
         .list-info h5 { margin: 0; font-size: 15px; font-weight: normal; color: #333; }
         .list-note { font-size: 12px; color: #999; margin-top: 3px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
         .list-amount { font-weight: bold; font-size: 16px; }
-
-        /* --- 记账弹窗 --- */
-        #add-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #fff; z-index: 2000; flex-direction: column;
-            padding-top: env(safe-area-inset-top); /* 适配刘海屏 */
-        }
-        .modal-header {
-            padding: 15px; text-align: center; font-weight: bold;
-            border-bottom: 1px solid #eee; position: relative; height: 24px; display: flex; align-items: center; justify-content: center;
-        }
+        #add-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 2000; flex-direction: column; padding-top: env(safe-area-inset-top); }
+        .modal-header { padding: 15px; text-align: center; font-weight: bold; border-bottom: 1px solid #eee; position: relative; height: 24px; display: flex; align-items: center; justify-content: center; }
         .header-btn-left { position: absolute; left: 15px; font-size: 20px; cursor: pointer; display: flex; align-items: center;}
         .close-icon { color: #333; }
         .delete-icon { color: #ff6b6b; display: none; font-size: 18px; margin-right: 5px; } 
         .manage-btn { position: absolute; right: 15px; font-size: 14px; color: var(--primary-dark); cursor: pointer; padding: 5px;}
-        
-        .category-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; padding: 20px;
-            flex-grow: 1; overflow-y: auto; align-content: start;
-        }
+        .category-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; padding: 20px; flex-grow: 1; overflow-y: auto; align-content: start; }
         .cat-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; }
-        .cat-icon {
-            width: 50px; height: 50px; background: #f5f5f5; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 5px;
-            transition: all 0.2s;
-        }
+        .cat-icon { width: 50px; height: 50px; background: #f5f5f5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 5px; transition: all 0.2s; }
         .cat-item.active .cat-icon { background: var(--primary); color: #fff; transform: scale(1.05); }
         .cat-name { font-size: 12px; color: #666; }
-        
-        .del-badge {
-            display: none; position: absolute; top: -5px; right: 8px;
-            background: #ff6b6b; color: #fff; width: 18px; height: 18px;
-            border-radius: 50%; font-size: 10px; align-items: center; justify-content: center;
-        }
+        .del-badge { display: none; position: absolute; top: -5px; right: 8px; background: #ff6b6b; color: #fff; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; align-items: center; justify-content: center; }
         .managing .del-badge { display: flex; }
         .managing .cat-item { animation: shake 0.3s infinite; }
         @keyframes shake { 0% {transform: rotate(0deg);} 25% {transform: rotate(1deg);} 75% {transform: rotate(-1deg);} 100% {transform: rotate(0deg);} }
-
-        /* 输入区 */
         .input-area-wrapper { background: #fff; border-top: 1px solid #f0f0f0; padding: 10px 20px; }
         .sub-cats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-        .sub-tag {
-            padding: 4px 10px; background: #f5f5f5; border-radius: 15px;
-            font-size: 12px; color: #666; cursor: pointer; border: 1px solid transparent;
-        }
+        .sub-tag { padding: 4px 10px; background: #f5f5f5; border-radius: 15px; font-size: 12px; color: #666; cursor: pointer; border: 1px solid transparent; }
         .sub-tag.active { background: var(--primary); color: #fff; }
-        .remark-input-box {
-            width: 100%; box-sizing: border-box; padding: 10px; background: #f9f9f9;
-            border: 1px solid #eee; border-radius: 8px; font-size: 14px; outline: none;
-        }
-
-        /* --- 计算器键盘 --- */
+        .remark-input-box { width: 100%; box-sizing: border-box; padding: 10px; background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; font-size: 14px; outline: none; }
         .keyboard-area { background: #f8f8f8; padding-bottom: 20px; }
-        .amount-display-row {
-            display: flex; justify-content: space-between; align-items: center;
-            background: #fff; border-bottom: 1px solid #eee; padding: 5px 20px;
-        }
-        .date-display-btn {
-            font-size: 14px; color: var(--primary-dark); border: 1px solid var(--primary);
-            padding: 4px 10px; border-radius: 15px; cursor: pointer; display: flex; align-items: center;
-        }
-        .amount-display {
-            font-size: 32px; text-align: right; padding: 10px 0;
-            color: #333; font-family: monospace; flex-grow: 1; margin-left: 10px;
-        }
-        
+        .amount-display-row { display: flex; justify-content: space-between; align-items: center; background: #fff; border-bottom: 1px solid #eee; padding: 5px 20px; }
+        .date-display-btn { font-size: 14px; color: var(--primary-dark); border: 1px solid var(--primary); padding: 4px 10px; border-radius: 15px; cursor: pointer; display: flex; align-items: center; }
+        .amount-display { font-size: 32px; text-align: right; padding: 10px 0; color: #333; font-family: monospace; flex-grow: 1; margin-left: 10px; }
         .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #eee; }
-        .key {
-            background: #fff; padding: 15px 0; text-align: center;
-            font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-        }
+        .key { background: #fff; padding: 15px 0; text-align: center; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .key:active { background: #e0e0e0; }
         .key.op { color: var(--primary-dark); font-weight: bold; background: #fcfcfc; }
         .key.confirm { background: var(--primary); color: #fff; font-weight: bold; }
         .key.calc-btn { background: #E2F0CB; color: #555; }
-
-        /* --- 日历 & 搜索 & 我的 --- */
         .calendar-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: #999; padding: 10px 0; background: #fff; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: #fff; padding-bottom: 10px; }
         .day-cell { height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; border-radius: 8px; margin: 2px; }
@@ -172,339 +72,150 @@
         .day-cell.selected .day-dot { background: #fff; }
         .day-detail-container { margin-top: 10px; padding: 0 20px 80px 20px; }
         .day-detail-header { font-size: 14px; color: #999; margin-bottom: 10px; padding-left: 5px; border-left: 3px solid var(--primary); }
-
         #search-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f7f9fb; z-index: 3000; padding-top: env(safe-area-inset-top);}
         .search-bar { background: #fff; padding: 15px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .search-input { flex: 1; background: #f0f0f0; border: none; padding: 10px 15px; border-radius: 20px; font-size: 14px; outline: none; margin-right: 10px; }
         .search-results { padding: 20px; overflow-y: auto; height: calc(100% - 70px); }
-
         .profile-header { display: flex; align-items: center; margin-bottom: 20px; }
         .avatar-box { width: 70px; height: 70px; border-radius: 50%; overflow: hidden; margin-right: 15px; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .avatar-img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
         .btn-block { display: block; width: 100%; padding: 15px 0; text-align: center; background: #fff; margin-bottom: 10px; border-radius: 12px; color: #555; font-size: 14px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
-        
-        /* 底部导航 */
         .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 999; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: #ccc; font-size: 10px; cursor: pointer; }
         .nav-item i { font-size: 20px; margin-bottom: 4px; }
         .nav-item.active { color: #333; }
         .add-btn-circle { width: 50px; height: 50px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; margin-top: -25px; box-shadow: 0 4px 10px rgba(209, 233, 246, 0.6); }
-
         #avatar-input, #backup-input, #date-picker-input { display: none; }
-        
-        /* 自动记账成功的提示弹窗 */
-        #toast { 
-            visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; 
-            padding: 16px; position: fixed; z-index: 5000; left: 50%; bottom: 100px; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s; 
-        }
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 5000; left: 50%; bottom: 100px; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s; }
         #toast.show { visibility: visible; opacity: 0.9; }
     </style>
 </head>
 <body>
-
-    <div class="header">
-        <div class="app-name">私房钱</div>
-        <div onclick="openSearch()" style="cursor: pointer; padding: 5px;"><i class="fas fa-search" style="font-size: 18px; color: #555;"></i></div>
-    </div>
-
+    <div class="header"><div class="app-name">私房钱</div><div onclick="openSearch()" style="cursor: pointer; padding: 5px;"><i class="fas fa-search" style="font-size: 18px; color: #555;"></i></div></div>
     <div id="page-home">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <span style="font-size:14px; color:#666;">本月预算</span>
-                <span onclick="editBudget()" style="color:var(--primary-dark); font-size:14px; cursor:pointer;">
-                    <span id="budget-display">0.00</span> <i class="fas fa-edit"></i>
-                </span>
-            </div>
-            <div class="budget-circle-container">
-                <canvas id="budgetChart"></canvas>
-                <div class="budget-center-text">
-                    <div style="font-size:12px; color:#999;">已消费</div>
-                    <div id="spent-display" class="total-spent">0.00</div>
-                </div>
-            </div>
-            <div class="info-row">
-                <div class="info-item"><div id="daily-avg" class="info-val">0.00</div><div class="info-lbl">本月日均</div></div>
-                <div class="info-item"><div id="daily-left" class="info-val" style="color:#D1E9F6;">0.00</div><div class="info-lbl">剩余日均</div></div>
-            </div>
-        </div>
-        <div class="card">
-            <h4 style="margin:0 0 15px 0;">最近几笔</h4>
-            <div id="recent-list"></div>
-        </div>
+        <div class="card"><div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="font-size:14px; color:#666;">本月预算</span><span onclick="editBudget()" style="color:var(--primary-dark); font-size:14px; cursor:pointer;"><span id="budget-display">0.00</span> <i class="fas fa-edit"></i></span></div>
+            <div class="budget-circle-container"><canvas id="budgetChart"></canvas><div class="budget-center-text"><div style="font-size:12px; color:#999;">已消费</div><div id="spent-display" class="total-spent">0.00</div></div></div>
+            <div class="info-row"><div class="info-item"><div id="daily-avg" class="info-val">0.00</div><div class="info-lbl">本月日均</div></div><div class="info-item"><div id="daily-left" class="info-val" style="color:#D1E9F6;">0.00</div><div class="info-lbl">剩余日均</div></div></div></div>
+        <div class="card"><h4 style="margin:0 0 15px 0;">最近几笔</h4><div id="recent-list"></div></div>
     </div>
-
-    <div id="page-calendar" style="display:none;">
-        <div class="card" style="padding:0; margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
-            <div style="padding:15px; text-align:center; font-weight:bold; border-bottom:1px solid #f9f9f9;"><span id="cal-title">2025年 12月</span></div>
-            <div class="calendar-header"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
-            <div id="calendar-body" class="calendar-grid"></div>
-        </div>
-        <div class="day-detail-container"><div id="selected-date-title" class="day-detail-header">请选择日期</div><div id="day-detail-list"></div></div>
-    </div>
-
-    <div id="page-stats" style="display:none;">
-        <div class="card"><h4 style="text-align:center;">分类统计</h4><canvas id="pieChart"></canvas></div>
-        <div class="card"><h4>排行榜</h4><div id="rank-list"></div></div>
-    </div>
-
-    <div id="page-profile" style="display:none;">
-        <div class="card profile-header">
-            <div class="avatar-box" onclick="document.getElementById('avatar-input').click()"><img id="avatar-img" src="https://via.placeholder.com/150" class="avatar-img"></div>
-            <input type="file" id="avatar-input" accept="image/*" onchange="uploadAvatar(this)">
-            <div class="user-info">
-                <h2><span id="nickname-display">小财迷</span> <i onclick="editNickname()" class="fas fa-edit" style="font-size:14px; color:#ccc; margin-left:10px; cursor:pointer;"></i></h2>
-                <div style="font-size:12px; color:#999; margin-top:5px;">坚持记账 <span id="days-count">1</span> 天</div>
-            </div>
-        </div>
-        <div class="card" style="background:transparent; box-shadow:none; padding:0;">
-            <div class="btn-block" onclick="exportData()"><i class="fas fa-file-export"></i> 导出数据备份</div>
-            <div class="btn-block" onclick="document.getElementById('backup-input').click()"><i class="fas fa-file-import"></i> 恢复数据</div>
-            <input type="file" id="backup-input" accept=".json" onchange="importData(this)">
-            <div class="btn-block" onclick="clearAllData()" style="color:#ff6b6b; margin-top:20px;"><i class="fas fa-trash-alt"></i> 清空所有数据</div>
-        </div>
-    </div>
-
-    <div id="search-modal">
-        <div class="search-bar">
-            <input type="text" id="search-input" class="search-input" placeholder="输入金额、分类或备注..." oninput="doSearch()">
-            <span class="search-cancel" onclick="closeSearch()">取消</span>
-        </div>
-        <div id="search-results" class="search-results"><div style="text-align:center; color:#ccc; margin-top:50px;">输入关键字开始搜索</div></div>
-    </div>
-
-    <div id="add-modal">
-        <div class="modal-header">
-            <div class="header-btn-left">
-                <i class="fas fa-times close-icon" onclick="closeAdd()"></i>
-                <i class="fas fa-trash-alt delete-icon" id="delete-tx-btn" onclick="deleteCurrentTx()" style="margin-left:15px; display:none;"></i>
-            </div>
-            <span id="modal-title">记一笔</span>
-            <span class="manage-btn" onclick="toggleManageMode()">管理分类</span>
-        </div>
-        <div id="cat-grid" class="category-grid"></div>
-        <div class="input-area-wrapper">
-            <div id="sub-cats-container" class="sub-cats"></div>
-            <input type="text" id="remark-input" class="remark-input-box" placeholder="添加备注...">
-        </div>
-        <div class="keyboard-area">
-            <div class="amount-display-row">
-                <div class="date-display-btn" onclick="openDatePicker()"><i class="fas fa-calendar-alt" style="margin-right:5px;"></i><span id="tx-date-display">今天</span></div>
-                <input type="date" id="date-picker-input" onchange="onDatePicked(this)">
-                <div class="amount-display" id="amount-input">0</div>
-            </div>
-            <div class="keypad">
-                <div class="key op" onclick="pressKey('AC')">AC</div><div class="key op" onclick="pressKey('(')">(</div><div class="key op" onclick="pressKey(')')">)</div><div class="key op" onclick="pressKey('back')"><i class="fas fa-backspace"></i></div>
-                <div class="key" onclick="pressKey('7')">7</div><div class="key" onclick="pressKey('8')">8</div><div class="key" onclick="pressKey('9')">9</div><div class="key op" onclick="pressKey('/')">÷</div>
-                <div class="key" onclick="pressKey('4')">4</div><div class="key" onclick="pressKey('5')">5</div><div class="key" onclick="pressKey('6')">6</div><div class="key op" onclick="pressKey('*')">×</div>
-                <div class="key" onclick="pressKey('1')">1</div><div class="key" onclick="pressKey('2')">2</div><div class="key" onclick="pressKey('3')">3</div><div class="key op" onclick="pressKey('-')">-</div>
-                <div class="key" onclick="pressKey('0')">0</div><div class="key" onclick="pressKey('.')">.</div><div class="key calc-btn" onclick="calculateResult()">=</div><div class="key op" onclick="pressKey('+')">+</div>
-            </div>
-            <div style="padding:10px;"><div onclick="saveTransaction()" style="background:var(--primary); color:#fff; text-align:center; padding:15px; border-radius:10px; font-weight:bold; font-size:18px;">保存</div></div>
-        </div>
-    </div>
-
+    <div id="page-calendar" style="display:none;"><div class="card" style="padding:0; margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0;"><div style="padding:15px; text-align:center; font-weight:bold; border-bottom:1px solid #f9f9f9;"><span id="cal-title">2025年 12月</span></div><div class="calendar-header"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div><div id="calendar-body" class="calendar-grid"></div></div><div class="day-detail-container"><div id="selected-date-title" class="day-detail-header">请选择日期</div><div id="day-detail-list"></div></div></div>
+    <div id="page-stats" style="display:none;"><div class="card"><h4 style="text-align:center;">分类统计</h4><canvas id="pieChart"></canvas></div><div class="card"><h4>排行榜</h4><div id="rank-list"></div></div></div>
+    <div id="page-profile" style="display:none;"><div class="card profile-header"><div class="avatar-box" onclick="document.getElementById('avatar-input').click()"><img id="avatar-img" src="https://via.placeholder.com/150" class="avatar-img"></div><input type="file" id="avatar-input" accept="image/*" onchange="uploadAvatar(this)"><div class="user-info"><h2><span id="nickname-display">小财迷</span> <i onclick="editNickname()" class="fas fa-edit" style="font-size:14px; color:#ccc; margin-left:10px; cursor:pointer;"></i></h2><div style="font-size:12px; color:#999; margin-top:5px;">坚持记账 <span id="days-count">1</span> 天</div></div></div><div class="card" style="background:transparent; box-shadow:none; padding:0;"><div class="btn-block" onclick="exportData()"><i class="fas fa-file-export"></i> 导出数据备份</div><div class="btn-block" onclick="document.getElementById('backup-input').click()"><i class="fas fa-file-import"></i> 恢复数据</div><input type="file" id="backup-input" accept=".json" onchange="importData(this)"><div class="btn-block" onclick="clearAllData()" style="color:#ff6b6b; margin-top:20px;"><i class="fas fa-trash-alt"></i> 清空所有数据</div></div></div>
+    <div id="search-modal"><div class="search-bar"><input type="text" id="search-input" class="search-input" placeholder="输入金额、分类或备注..." oninput="doSearch()"><span class="search-cancel" onclick="closeSearch()">取消</span></div><div id="search-results" class="search-results"><div style="text-align:center; color:#ccc; margin-top:50px;">输入关键字开始搜索</div></div></div>
+    <div id="add-modal"><div class="modal-header"><div class="header-btn-left"><i class="fas fa-times close-icon" onclick="closeAdd()"></i><i class="fas fa-trash-alt delete-icon" id="delete-tx-btn" onclick="deleteCurrentTx()" style="margin-left:15px; display:none;"></i></div><span id="modal-title">记一笔</span><span class="manage-btn" onclick="toggleManageMode()">管理分类</span></div><div id="cat-grid" class="category-grid"></div><div class="input-area-wrapper"><div id="sub-cats-container" class="sub-cats"></div><input type="text" id="remark-input" class="remark-input-box" placeholder="添加备注..."></div><div class="keyboard-area"><div class="amount-display-row"><div class="date-display-btn" onclick="openDatePicker()"><i class="fas fa-calendar-alt" style="margin-right:5px;"></i><span id="tx-date-display">今天</span></div><input type="date" id="date-picker-input" onchange="onDatePicked(this)"><div class="amount-display" id="amount-input">0</div></div><div class="keypad"><div class="key op" onclick="pressKey('AC')">AC</div><div class="key op" onclick="pressKey('(')">(</div><div class="key op" onclick="pressKey(')')">)</div><div class="key op" onclick="pressKey('back')"><i class="fas fa-backspace"></i></div><div class="key" onclick="pressKey('7')">7</div><div class="key" onclick="pressKey('8')">8</div><div class="key" onclick="pressKey('9')">9</div><div class="key op" onclick="pressKey('/')">÷</div><div class="key" onclick="pressKey('4')">4</div><div class="key" onclick="pressKey('5')">5</div><div class="key" onclick="pressKey('6')">6</div><div class="key op" onclick="pressKey('*')">×</div><div class="key" onclick="pressKey('1')">1</div><div class="key" onclick="pressKey('2')">2</div><div class="key" onclick="pressKey('3')">3</div><div class="key op" onclick="pressKey('-')">-</div><div class="key" onclick="pressKey('0')">0</div><div class="key" onclick="pressKey('.')">.</div><div class="key calc-btn" onclick="calculateResult()">=</div><div class="key op" onclick="pressKey('+')">+</div></div><div style="padding:10px;"><div onclick="saveTransaction()" style="background:var(--primary); color:#fff; text-align:center; padding:15px; border-radius:10px; font-weight:bold; font-size:18px;">保存</div></div></div></div>
     <div id="toast">已自动记账！</div>
-
-    <div class="nav-bar">
-        <div class="nav-item active" onclick="switchPage('home', this)"><i class="fas fa-home"></i> 首页</div>
-        <div class="nav-item" onclick="switchPage('calendar', this)"><i class="fas fa-calendar-alt"></i> 日历</div>
-        <div class="nav-item" onclick="openAdd()"><div class="add-btn-circle"><i class="fas fa-plus"></i></div></div>
-        <div class="nav-item" onclick="switchPage('stats', this)"><i class="fas fa-chart-pie"></i> 图表</div>
-        <div class="nav-item" onclick="switchPage('profile', this)"><i class="fas fa-user"></i> 我的</div>
-    </div>
+    <div class="nav-bar"><div class="nav-item active" onclick="switchPage('home', this)"><i class="fas fa-home"></i> 首页</div><div class="nav-item" onclick="switchPage('calendar', this)"><i class="fas fa-calendar-alt"></i> 日历</div><div class="nav-item" onclick="openAdd()"><div class="add-btn-circle"><i class="fas fa-plus"></i></div></div><div class="nav-item" onclick="switchPage('stats', this)"><i class="fas fa-chart-pie"></i> 图表</div><div class="nav-item" onclick="switchPage('profile', this)"><i class="fas fa-user"></i> 我的</div></div>
 
     <script>
         const DEFAULT_CATEGORIES = { "餐饮": ["早餐", "午餐", "晚餐", "饮料"], "购物": ["日用", "服饰", "数码"], "交通": ["地铁", "打车"], "居住": ["房租", "水电"], "娱乐": ["游戏", "电影"], "其他": ["杂项"] };
         const ICONS = { "餐饮": "fa-utensils", "购物": "fa-shopping-bag", "交通": "fa-car", "居住": "fa-home", "娱乐": "fa-gamepad", "其他": "fa-th-large" };
         let data = JSON.parse(localStorage.getItem("moneyUltimateData")) || { budget: 3000, nickname: "小财迷", avatar: null, transactions: [], categories: DEFAULT_CATEGORIES };
-        let currentExpr = "0"; let currentCat = Object.keys(data.categories)[0]; let currentSubCat = data.categories[currentCat][0];
-        let isManaging = false; let selectedDate = new Date(); let txDate = new Date(); let editingTxId = null;
+        let currentExpr="0", currentCat=Object.keys(data.categories)[0], currentSubCat=data.categories[currentCat][0], isManaging=false, selectedDate=new Date(), txDate=new Date(), editingTxId=null;
 
         function saveData() { localStorage.setItem("moneyUltimateData", JSON.stringify(data)); }
-        function init() { 
-            checkAutoImport(); 
-            renderHome(); renderProfile(); 
-        }
+        function init() { checkAutoImport(); renderHome(); renderProfile(); }
 
-        // --- 核心：AI 链接自动记账功能 ---
+        // --- 核心：多笔账单自动导入逻辑 ---
         function checkAutoImport() {
             const params = new URLSearchParams(window.location.search);
-            const amtStr = params.get('amt');
-            const catStr = params.get('cat');
-            const noteStr = params.get('note');
+            // 优先检查 'multi' 参数（格式：金额|分类|备注;;金额|分类|备注）
+            const multiStr = params.get('multi');
+            let importedCount = 0;
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
-            if (amtStr && catStr) {
-                const amt = parseFloat(amtStr);
-                if (!isNaN(amt) && amt > 0) {
-                    let finalCat = "其他";
-                    let finalSub = "杂项";
-                    const existCat = Object.keys(data.categories).find(c => c === catStr);
-                    if (existCat) {
-                        finalCat = existCat;
-                        finalSub = data.categories[existCat][0];
+            if (multiStr) {
+                const items = multiStr.split(';;');
+                items.forEach(item => {
+                    const parts = item.split('|');
+                    if(parts.length >= 2) {
+                        const amt = parseFloat(parts[0]);
+                        const catRaw = parts[1];
+                        const note = parts[2] || "AI批量记账";
+                        
+                        if (!isNaN(amt) && amt > 0) {
+                            let finalCat = "其他", finalSub = "杂项";
+                            const existCat = Object.keys(data.categories).find(c => c === catRaw);
+                            if (existCat) { finalCat = existCat; finalSub = data.categories[existCat][0]; }
+                            
+                            data.transactions.push({ id: Date.now() + Math.random(), category: finalCat, subCat: finalSub, amount: amt, date: dateStr, note: note });
+                            importedCount++;
+                        }
                     }
-                    const now = new Date();
-                    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-                    data.transactions.push({ id: Date.now(), category: finalCat, subCat: finalSub, amount: amt, date: dateStr, note: noteStr || "AI自动识别" });
-                    saveData();
-                    showToast(`已自动记账：¥${amt} (${finalCat})`);
+                });
+            } else {
+                // 兼容旧的单笔逻辑
+                const amtStr = params.get('amt');
+                if (amtStr) {
+                    const amt = parseFloat(amtStr);
+                    if (!isNaN(amt) && amt > 0) {
+                        const catStr = params.get('cat');
+                        let finalCat = "其他", finalSub = "杂项";
+                        const existCat = Object.keys(data.categories).find(c => c === catStr);
+                        if (existCat) { finalCat = existCat; finalSub = data.categories[existCat][0]; }
+                        
+                        data.transactions.push({ id: Date.now(), category: finalCat, subCat: finalSub, amount: amt, date: dateStr, note: params.get('note') || "AI自动识别" });
+                        importedCount = 1;
+                    }
                 }
+            }
+
+            if (importedCount > 0) {
+                saveData();
+                showToast(`成功记入 ${importedCount} 笔账单！`);
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
 
-        function showToast(msg) {
-            const x = document.getElementById("toast"); x.innerText = msg; x.className = "show";
-            setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
-        }
-
-        /* --- 首页 --- */
-        let budgetChartInstance = null;
+        function showToast(msg) { const x=document.getElementById("toast"); x.innerText=msg; x.className="show"; setTimeout(()=>{x.className=x.className.replace("show","")}, 3000); }
         function renderHome() {
-            const now = new Date(); const cm = now.getMonth(); const cy = now.getFullYear();
-            let monthSpent = 0;
-            data.transactions.forEach(t => { const d = new Date(t.date); if(d.getMonth() === cm && d.getFullYear() === cy) monthSpent += parseFloat(t.amount); });
-
-            document.getElementById("budget-display").innerText = "¥" + data.budget;
-            document.getElementById("spent-display").innerText = monthSpent.toFixed(2);
-            
-            const daysInMonth = new Date(cy, cm + 1, 0).getDate(); const dayPassed = now.getDate(); const daysLeft = daysInMonth - dayPassed;
-            const remainingBudget = data.budget - monthSpent;
-            document.getElementById("daily-avg").innerText = (monthSpent / Math.max(dayPassed, 1)).toFixed(2);
-            document.getElementById("daily-left").innerText = daysLeft > 0 ? (remainingBudget / daysLeft).toFixed(2) : remainingBudget.toFixed(2);
-
-            const ctx = document.getElementById('budgetChart').getContext('2d');
-            if(budgetChartInstance) budgetChartInstance.destroy();
-            budgetChartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels: ['已用', '剩余'], datasets: [{ data: [monthSpent, remainingBudget > 0 ? remainingBudget : 0], backgroundColor: ['#FFB7B2', '#Eef2f5'], borderWidth: 0 }] },
-                options: { cutout: '80%', plugins: { legend: false, tooltip: false } }
-            });
-
-            const listEl = document.getElementById("recent-list");
-            const sortedTx = data.transactions.slice().sort((a,b) => (new Date(b.date) - new Date(a.date)) || (b.id - a.id));
-            const recentTx = sortedTx.slice(0, 5);
-            listEl.innerHTML = recentTx.length ? "" : "<div style='text-align:center;color:#ccc;padding:10px;'>暂无记录</div>";
-            recentTx.forEach(t => listEl.innerHTML += createTxItemHtml(t));
+            const now=new Date(), cm=now.getMonth(), cy=now.getFullYear();
+            let monthSpent=0; data.transactions.forEach(t=>{const d=new Date(t.date);if(d.getMonth()===cm&&d.getFullYear()===cy)monthSpent+=parseFloat(t.amount)});
+            document.getElementById("budget-display").innerText="¥"+data.budget; document.getElementById("spent-display").innerText=monthSpent.toFixed(2);
+            const daysInMonth=new Date(cy,cm+1,0).getDate(), dayPassed=now.getDate(), daysLeft=daysInMonth-dayPassed;
+            const remainingBudget=data.budget-monthSpent;
+            document.getElementById("daily-avg").innerText=(monthSpent/Math.max(dayPassed,1)).toFixed(2);
+            document.getElementById("daily-left").innerText=daysLeft>0?(remainingBudget/daysLeft).toFixed(2):remainingBudget.toFixed(2);
+            const ctx=document.getElementById('budgetChart').getContext('2d'); if(budgetChartInstance)budgetChartInstance.destroy();
+            budgetChartInstance=new Chart(ctx,{type:'doughnut',data:{labels:['已用','剩余'],datasets:[{data:[monthSpent,remainingBudget>0?remainingBudget:0],backgroundColor:['#FFB7B2','#Eef2f5'],borderWidth:0}]},options:{cutout:'80%',plugins:{legend:false,tooltip:false}}});
+            const listEl=document.getElementById("recent-list"); const sortedTx=data.transactions.slice().sort((a,b)=>(new Date(b.date)-new Date(a.date))||(b.id-a.id));
+            const recentTx=sortedTx.slice(0,5); listEl.innerHTML=recentTx.length?"":"<div style='text-align:center;color:#ccc;padding:10px;'>暂无记录</div>";
+            recentTx.forEach(t=>listEl.innerHTML+=createTxItemHtml(t));
         }
-
-        function createTxItemHtml(t) {
-            const icon = ICONS[t.category] || "fa-star";
-            const noteText = t.note ? ` | ${t.note}` : "";
-            return `<div class="list-item" onclick="openEditTx(${t.id})"><div class="list-left"><div class="list-icon"><i class="fas ${icon}"></i></div><div class="list-info"><h5>${t.category} - ${t.subCat}</h5><div class="list-note">${t.date}${noteText}</div></div></div><div class="list-amount">-${parseFloat(t.amount).toFixed(2)}</div></div>`;
-        }
-
-        /* --- 记账/编辑 --- */
-        window.openAdd = function() {
-            editingTxId = null; resetModalState();
-            document.getElementById("modal-title").innerText = "记一笔";
-            document.getElementById("delete-tx-btn").style.display = "none";
-            document.getElementById("add-modal").style.display = "flex";
+        function createTxItemHtml(t) { const icon=ICONS[t.category]||"fa-star"; const noteText=t.note?` | ${t.note}`:""; return `<div class="list-item" onclick="openEditTx(${t.id})"><div class="list-left"><div class="list-icon"><i class="fas ${icon}"></i></div><div class="list-info"><h5>${t.category} - ${t.subCat}</h5><div class="list-note">${t.date}${noteText}</div></div></div><div class="list-amount">-${parseFloat(t.amount).toFixed(2)}</div></div>`; }
+        
+        window.openAdd=function(){ editingTxId=null;resetModalState();document.getElementById("modal-title").innerText="记一笔";document.getElementById("delete-tx-btn").style.display="none";document.getElementById("add-modal").style.display="flex"; };
+        window.openEditTx=function(id){ const tx=data.transactions.find(t=>t.id===id);if(!tx)return;editingTxId=id;currentExpr=tx.amount.toString();currentCat=tx.category;currentSubCat=tx.subCat;document.getElementById("remark-input").value=tx.note||"";const parts=tx.date.split('-');txDate=new Date(parts[0],parts[1]-1,parts[2]);updateDisplay();updateDateBtn();renderCategories();document.getElementById("modal-title").innerText="修改账单";document.getElementById("delete-tx-btn").style.display="inline-block";document.getElementById("add-modal").style.display="flex"; };
+        function resetModalState(){ currentExpr="0";document.getElementById("remark-input").value="";txDate=new Date();updateDateBtn();updateDisplay();renderCategories(); }
+        window.closeAdd=function(){ document.getElementById("add-modal").style.display="none";isManaging=false; };
+        window.saveTransaction=function(){
+            let finalAmount=parseFloat(currentExpr); if(/[\+\-\*\/]/.test(currentExpr))finalAmount=calculateResult();
+            if(finalAmount===null||isNaN(finalAmount)||finalAmount<=0){alert("金额无效");return;}
+            const note=document.getElementById("remark-input").value.trim(); const dateStr=`${txDate.getFullYear()}-${String(txDate.getMonth()+1).padStart(2,'0')}-${String(txDate.getDate()).padStart(2,'0')}`;
+            if(editingTxId){ const idx=data.transactions.findIndex(t=>t.id===editingTxId);if(idx>-1){data.transactions[idx]={...data.transactions[idx],amount:finalAmount,category:currentCat,subCat:currentSubCat,date:dateStr,note:note};} }
+            else{ data.transactions.push({id:Date.now(),category:currentCat,subCat:currentSubCat,amount:finalAmount,date:dateStr,note:note}); }
+            saveData();closeAdd();renderHome();if(document.getElementById('page-calendar').style.display==='block')renderDayDetails();if(document.getElementById('search-modal').style.display==='block')doSearch();
         };
-        window.openEditTx = function(id) {
-            const tx = data.transactions.find(t => t.id === id); if(!tx) return;
-            editingTxId = id;
-            currentExpr = tx.amount.toString(); currentCat = tx.category; currentSubCat = tx.subCat;
-            document.getElementById("remark-input").value = tx.note || "";
-            const parts = tx.date.split('-'); txDate = new Date(parts[0], parts[1]-1, parts[2]);
-            updateDisplay(); updateDateBtn(); renderCategories();
-            document.getElementById("modal-title").innerText = "修改账单";
-            document.getElementById("delete-tx-btn").style.display = "inline-block";
-            document.getElementById("add-modal").style.display = "flex";
-        };
-        function resetModalState() { currentExpr = "0"; document.getElementById("remark-input").value = ""; txDate = new Date(); updateDateBtn(); updateDisplay(); renderCategories(); }
-        window.closeAdd = function() { document.getElementById("add-modal").style.display = "none"; isManaging=false; };
-
-        window.saveTransaction = function() {
-            let finalAmount = parseFloat(currentExpr);
-            if(/[\+\-\*\/]/.test(currentExpr)) finalAmount = calculateResult();
-            if(finalAmount === null || isNaN(finalAmount) || finalAmount <= 0) { alert("金额无效"); return; }
-            const note = document.getElementById("remark-input").value.trim();
-            const dateStr = `${txDate.getFullYear()}-${String(txDate.getMonth()+1).padStart(2,'0')}-${String(txDate.getDate()).padStart(2,'0')}`;
-            
-            if(editingTxId) {
-                const idx = data.transactions.findIndex(t => t.id === editingTxId);
-                if(idx > -1) { data.transactions[idx] = { ...data.transactions[idx], amount: finalAmount, category: currentCat, subCat: currentSubCat, date: dateStr, note: note }; }
-            } else {
-                data.transactions.push({ id: Date.now(), category: currentCat, subCat: currentSubCat, amount: finalAmount, date: dateStr, note: note });
-            }
-            saveData(); closeAdd(); renderHome();
-            if(document.getElementById('page-calendar').style.display === 'block') renderDayDetails(); 
-            if(document.getElementById('search-modal').style.display === 'block') doSearch();
-        };
-
-        window.deleteCurrentTx = function() {
-            if(editingTxId && confirm("确定删除这条记录？")) {
-                const idx = data.transactions.findIndex(t => t.id === editingTxId);
-                if(idx > -1) { data.transactions.splice(idx, 1); saveData(); closeAdd(); renderHome(); if(document.getElementById('page-calendar').style.display === 'block') renderDayDetails(); if(document.getElementById('search-modal').style.display === 'block') doSearch(); }
-            }
-        };
-
-        /* --- 日期/计算器/日历/备份等 --- */
-        window.openDatePicker = function() { document.getElementById('date-picker-input').showPicker(); };
-        window.onDatePicked = function(input) { if(input.value) { const parts = input.value.split('-'); txDate = new Date(parts[0], parts[1]-1, parts[2]); updateDateBtn(); } };
-        function updateDateBtn() { const m = txDate.getMonth()+1; const d = txDate.getDate(); document.getElementById("tx-date-display").innerText = `${m}月${d}日`; document.getElementById('date-picker-input').value = `${txDate.getFullYear()}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
-        window.pressKey = function(key) { if(key==='AC')currentExpr="0"; else if(key==='back')currentExpr=currentExpr.toString().slice(0,-1)||"0"; else {if(currentExpr==="0"&&!['.','+','-','*','/'].includes(key))currentExpr=key; else currentExpr+=key;} updateDisplay(); };
-        window.calculateResult = function() { try{let r=eval(currentExpr.replace(/[^0-9\.\+\-\*\/\(\)]/g,'')); if(!Number.isInteger(r))r=parseFloat(r.toFixed(2)); currentExpr=r.toString(); updateDisplay(); return r;}catch(e){return null;} };
-        function updateDisplay() { document.getElementById("amount-input").innerText=currentExpr; }
-
-        function renderCalendar() {
-            const grid=document.getElementById("calendar-body"); grid.innerHTML=""; const y=selectedDate.getFullYear(); const m=selectedDate.getMonth();
-            document.getElementById("cal-title").innerText=`${y}年 ${m+1}月`;
-            const first=new Date(y,m,1).getDay(); const days=new Date(y,m+1,0).getDate();
-            let map={}; data.transactions.forEach(t=>{const d=new Date(t.date);if(d.getFullYear()===y&&d.getMonth()===m)map[d.getDate()]=true;});
-            for(let i=0;i<first;i++)grid.innerHTML+=`<div></div>`;
-            for(let i=1;i<=days;i++){const sel=i===selectedDate.getDate()?"selected":""; const has=map[i]?"has-data":""; grid.innerHTML+=`<div class="day-cell ${sel} ${has}" onclick="selectDate(${i})"><span class="day-num">${i}</span><div class="day-dot"></div></div>`;}
-            renderDayDetails();
-        }
-        window.selectDate = function(d) { selectedDate.setDate(d); renderCalendar(); };
-        function renderDayDetails() {
-            const list=document.getElementById("day-detail-list"); const y=selectedDate.getFullYear(); const m=selectedDate.getMonth(); const d=selectedDate.getDate();
-            const str=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const txs=data.transactions.filter(t=>t.date===str).sort((a,b)=>b.id-a.id);
-            document.getElementById("selected-date-title").innerText = `${m+1}月${d}日 ${txs.length?'明细':'无消费'}`;
-            list.innerHTML=""; txs.forEach(t=>list.innerHTML+=createTxItemHtml(t));
-        }
-
-        function renderCategories() {
-            const grid = document.getElementById("cat-grid"); grid.innerHTML = "";
-            Object.keys(data.categories).forEach(cat => {
-                const icon = ICONS[cat] || "fa-tag"; const active = (cat === currentCat && !isManaging) ? "active" : "";
-                const clickFn = isManaging ? `manageCat('${cat}')` : `selectCat('${cat}')`;
-                grid.innerHTML += `<div class="cat-item ${active} ${isManaging?'managing':''}" onclick="${clickFn}"><div class="del-badge"><i class="fas fa-times"></i></div><div class="cat-icon"><i class="fas ${icon}"></i></div><div class="cat-name">${cat}</div></div>`;
-            });
-            if(isManaging) grid.innerHTML += `<div class="cat-item" onclick="addCat()"><div class="cat-icon"><i class="fas fa-plus"></i></div><div class="cat-name">添加</div></div>`;
-            else renderSubCats();
-        }
-        window.selectCat = function(c) { currentCat=c; currentSubCat=data.categories[c][0]||"默认"; renderCategories(); };
-        window.toggleManageMode = function() { isManaging=!isManaging; renderCategories(); };
-        window.manageCat = function(c) { if(confirm(`删 ${c}?`)){delete data.categories[c];saveData();renderCategories();} };
-        window.addCat = function() { let n=prompt("新分类:");if(n){data.categories[n]=["默认"];saveData();renderCategories();} };
-        function renderSubCats() {
-            const con=document.getElementById("sub-cats-container"); con.innerHTML="";
-            (data.categories[currentCat]||[]).forEach(s=>{ con.innerHTML+=`<span class="sub-tag ${s===currentSubCat?'active':''}" onclick="currentSubCat='${s}';renderSubCats()">${s}</span>`; });
-            con.innerHTML+=`<span class="sub-tag" onclick="manageSub()" style="border-style:dashed">+</span>`;
-        }
-        window.manageSub = function() { let a=prompt("1.加 2.删"); if(a=="1"){let n=prompt("名:");if(n){data.categories[currentCat].push(n);saveData();renderSubCats();}} if(a=="2"){let n=prompt(`删?(${data.categories[currentCat]})`);if(n){let i=data.categories[currentCat].indexOf(n);if(i>-1)data.categories[currentCat].splice(i,1);saveData();renderSubCats();}} };
-
-        window.openSearch = function() { document.getElementById("search-modal").style.display="block"; document.getElementById("search-input").focus(); };
-        window.closeSearch = function() { document.getElementById("search-modal").style.display="none"; };
-        window.doSearch = function() {
-            const val=document.getElementById("search-input").value.trim().toLowerCase(); const div=document.getElementById("search-results"); if(!val){div.innerHTML="";return;}
-            const hits=data.transactions.filter(t=>t.category.includes(val)||t.subCat.includes(val)||(t.note&&t.note.includes(val))||t.amount.toString().includes(val)).sort((a,b)=>(new Date(b.date)-new Date(a.date)));
-            div.innerHTML=hits.length?"":"<div style='text-align:center;color:#999;margin-top:20px;'>无记录</div>"; hits.forEach(t=>div.innerHTML+=createTxItemHtml(t));
-        };
-
-        window.switchPage = function(pid, el) { document.querySelectorAll(".nav-item").forEach(e=>e.classList.remove("active")); el.classList.add("active"); ['home','calendar','stats','profile'].forEach(id=>document.getElementById('page-'+id).style.display='none'); document.getElementById('page-'+pid).style.display='block'; if(pid==='calendar'){selectedDate=new Date();renderCalendar();} if(pid==='stats')renderStats(); };
-        window.editBudget = function() { let v=prompt("预算:", data.budget); if(v&&!isNaN(v)){data.budget=v; saveData(); renderHome();} };
-        window.editNickname = function() { let v=prompt("昵称:", data.nickname); if(v){data.nickname=v; saveData(); renderProfile();} };
-        window.uploadAvatar = function(i) { if(i.files[0]){let r=new FileReader();r.onload=e=>{data.avatar=e.target.result;saveData();renderProfile();};r.readAsDataURL(i.files[0]);} };
-        function renderProfile() { document.getElementById("nickname-display").innerText=data.nickname; if(data.avatar)document.getElementById("avatar-img").src=data.avatar; }
-        window.exportData = function() { const b=new Blob([JSON.stringify(data)],{type:"application/json"}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download=`私房钱备份_${new Date().toISOString().slice(0,10)}.json`; a.click(); };
-        window.importData = function(i) { if(i.files[0]){const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.transactions){if(confirm("确定恢复?")){data=d;saveData();alert("成功!");location.reload();}}}catch(e){alert("文件坏了");}};r.readAsText(i.files[0]);} };
-        window.clearAllData = function() { if(confirm("确定清空?")){localStorage.removeItem("moneyUltimateData");location.reload();} };
-        function renderStats() { let m={}; data.transactions.forEach(t=>m[t.category]=(m[t.category]||0)+parseFloat(t.amount)); const v=Object.values(m); const k=Object.keys(m); new Chart(document.getElementById('pieChart'), { type:'pie', data:{labels:k, datasets:[{data:v, backgroundColor:['#FFB7B2','#FFDAC1','#E2F0CB','#B5EAD7','#C7CEEA']}]} }); const l=document.getElementById("rank-list"); l.innerHTML=""; k.map((x,i)=>({x,v:v[i]})).sort((a,b)=>b.v-a.v).forEach((o,i)=>l.innerHTML+=`<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #eee;"><span>${i+1}. ${o.x}</span><span>¥${o.v.toFixed(2)}</span></div>`); }
-
+        window.deleteCurrentTx=function(){ if(editingTxId&&confirm("确定删除?")){const idx=data.transactions.findIndex(t=>t.id===editingTxId);if(idx>-1){data.transactions.splice(idx,1);saveData();closeAdd();renderHome();if(document.getElementById('page-calendar').style.display==='block')renderDayDetails();if(document.getElementById('search-modal').style.display==='block')doSearch();}} };
+        window.openDatePicker=function(){document.getElementById('date-picker-input').showPicker();};window.onDatePicked=function(i){if(i.value){const p=i.value.split('-');txDate=new Date(p[0],p[1]-1,p[2]);updateDateBtn();}};
+        function updateDateBtn(){const m=txDate.getMonth()+1;const d=txDate.getDate();document.getElementById("tx-date-display").innerText=`${m}月${d}日`;document.getElementById('date-picker-input').value=`${txDate.getFullYear()}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+        window.pressKey=function(k){if(k==='AC')currentExpr="0";else if(k==='back')currentExpr=currentExpr.toString().slice(0,-1)||"0";else{if(currentExpr==="0"&&!['.','+','-','*','/'].includes(k))currentExpr=k;else currentExpr+=k;}updateDisplay();};
+        window.calculateResult=function(){try{let r=eval(currentExpr.replace(/[^0-9\.\+\-\*\/\(\)]/g,''));if(!Number.isInteger(r))r=parseFloat(r.toFixed(2));currentExpr=r.toString();updateDisplay();return r;}catch(e){return null;}};
+        function updateDisplay(){document.getElementById("amount-input").innerText=currentExpr;}
+        function renderCalendar(){const g=document.getElementById("calendar-body");g.innerHTML="";const y=selectedDate.getFullYear(),m=selectedDate.getMonth();document.getElementById("cal-title").innerText=`${y}年 ${m+1}月`;const f=new Date(y,m,1).getDay(),d=new Date(y,m+1,0).getDate();let map={};data.transactions.forEach(t=>{const dt=new Date(t.date);if(dt.getFullYear()===y&&dt.getMonth()===m)map[dt.getDate()]=true;});for(let i=0;i<f;i++)g.innerHTML+=`<div></div>`;for(let i=1;i<=d;i++){const s=i===selectedDate.getDate()?"selected":"",h=map[i]?"has-data":"";g.innerHTML+=`<div class="day-cell ${s} ${h}" onclick="selectDate(${i})"><span class="day-num">${i}</span><div class="day-dot"></div></div>`;}renderDayDetails();}
+        window.selectDate=function(d){selectedDate.setDate(d);renderCalendar();};
+        function renderDayDetails(){const l=document.getElementById("day-detail-list"),y=selectedDate.getFullYear(),m=selectedDate.getMonth(),d=selectedDate.getDate(),s=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;const txs=data.transactions.filter(t=>t.date===s).sort((a,b)=>b.id-a.id);document.getElementById("selected-date-title").innerText=`${m+1}月${d}日 ${txs.length?'明细':'无消费'}`;l.innerHTML="";txs.forEach(t=>l.innerHTML+=createTxItemHtml(t));}
+        function renderCategories(){const g=document.getElementById("cat-grid");g.innerHTML="";Object.keys(data.categories).forEach(c=>{const i=ICONS[c]||"fa-tag",a=(c===currentCat&&!isManaging)?"active":"",f=isManaging?`manageCat('${c}')`:`selectCat('${c}')`;g.innerHTML+=`<div class="cat-item ${a} ${isManaging?'managing':''}" onclick="${f}"><div class="del-badge"><i class="fas fa-times"></i></div><div class="cat-icon"><i class="fas ${i}"></i></div><div class="cat-name">${c}</div></div>`});if(isManaging)g.innerHTML+=`<div class="cat-item" onclick="addCat()"><div class="cat-icon"><i class="fas fa-plus"></i></div><div class="cat-name">添加</div></div>`;else renderSubCats();}
+        window.selectCat=function(c){currentCat=c;currentSubCat=data.categories[c][0]||"默认";renderCategories();};window.toggleManageMode=function(){isManaging=!isManaging;renderCategories();};window.manageCat=function(c){if(confirm(`删 ${c}?`)){delete data.categories[c];saveData();renderCategories();}};window.addCat=function(){let n=prompt("新分类:");if(n){data.categories[n]=["默认"];saveData();renderCategories();}};
+        function renderSubCats(){const c=document.getElementById("sub-cats-container");c.innerHTML="";(data.categories[currentCat]||[]).forEach(s=>{c.innerHTML+=`<span class="sub-tag ${s===currentSubCat?'active':''}" onclick="currentSubCat='${s}';renderSubCats()">${s}</span>`});c.innerHTML+=`<span class="sub-tag" onclick="manageSub()" style="border-style:dashed">+</span>`;}
+        window.manageSub=function(){let a=prompt("1.加 2.删");if(a=="1"){let n=prompt("名:");if(n){data.categories[currentCat].push(n);saveData();renderSubCats();}}if(a=="2"){let n=prompt(`删?(${data.categories[currentCat]})`);if(n){let i=data.categories[currentCat].indexOf(n);if(i>-1)data.categories[currentCat].splice(i,1);saveData();renderSubCats();}}};
+        window.openSearch=function(){document.getElementById("search-modal").style.display="block";document.getElementById("search-input").focus();};window.closeSearch=function(){document.getElementById("search-modal").style.display="none";};window.doSearch=function(){const v=document.getElementById("search-input").value.trim().toLowerCase(),d=document.getElementById("search-results");if(!v){d.innerHTML="";return;}const h=data.transactions.filter(t=>t.category.includes(v)||t.subCat.includes(v)||(t.note&&t.note.includes(v))||t.amount.toString().includes(v)).sort((a,b)=>(new Date(b.date)-new Date(a.date)));d.innerHTML=h.length?"":"<div style='text-align:center;color:#999;margin-top:20px;'>无记录</div>";h.forEach(t=>d.innerHTML+=createTxItemHtml(t));};
+        window.switchPage=function(p,e){document.querySelectorAll(".nav-item").forEach(i=>i.classList.remove("active"));e.classList.add("active");['home','calendar','stats','profile'].forEach(id=>document.getElementById('page-'+id).style.display='none');document.getElementById('page-'+p).style.display='block';if(p==='calendar'){selectedDate=new Date();renderCalendar();}if(p==='stats')renderStats();};
+        window.editBudget=function(){let v=prompt("预算:",data.budget);if(v&&!isNaN(v)){data.budget=v;saveData();renderHome();}};window.editNickname=function(){let v=prompt("昵称:",data.nickname);if(v){data.nickname=v;saveData();renderProfile();}};window.uploadAvatar=function(i){if(i.files[0]){let r=new FileReader();r.onload=e=>{data.avatar=e.target.result;saveData();renderProfile();};r.readAsDataURL(i.files[0]);}};function renderProfile(){document.getElementById("nickname-display").innerText=data.nickname;if(data.avatar)document.getElementById("avatar-img").src=data.avatar;}
+        window.exportData=function(){const b=new Blob([JSON.stringify(data)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`私房钱备份_${new Date().toISOString().slice(0,10)}.json`;a.click();};
+        window.importData=function(i){if(i.files[0]){const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.transactions){if(confirm("确定恢复?")){data=d;saveData();alert("成功!");location.reload();}}}catch(e){alert("文件坏了");}};r.readAsText(i.files[0]);}};window.clearAllData=function(){if(confirm("确定清空?")){localStorage.removeItem("moneyUltimateData");location.reload();}};
+        function renderStats(){let m={};data.transactions.forEach(t=>m[t.category]=(m[t.category]||0)+parseFloat(t.amount));const v=Object.values(m),k=Object.keys(m);new Chart(document.getElementById('pieChart'),{type:'pie',data:{labels:k,datasets:[{data:v,backgroundColor:['#FFB7B2','#FFDAC1','#E2F0CB','#B5EAD7','#C7CEEA']}]}});const l=document.getElementById("rank-list");l.innerHTML="";k.map((x,i)=>({x,v:v[i]})).sort((a,b)=>b.v-a.v).forEach((o,i)=>l.innerHTML+=`<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #eee;"><span>${i+1}. ${o.x}</span><span>¥${o.v.toFixed(2)}</span></div>`);}
+        
         init();
     </script>
 </body>
